@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mouse Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            height: 100vh;
+        }
+        
+        .test-area {
+            width: 100%;
+            height: 400px;
+            background: white;
+            border: 2px solid #ccc;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        .virtual-cursor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: red;
+            border-radius: 50%;
+            pointer-events: none;
+            transition: all 0.1s ease;
+        }
+        
+        .info {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .log {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mobile Controller Test Page</h1>
+    
+    <div class="info">
+        <strong>Instructions:</strong>
+        <ol>
+            <li>Use the bookmarklet on this page</li>
+            <li>Move your mobile joystick and mouse area</li>
+            <li>Watch the red cursor move and see the logs below</li>
+        </ol>
+    </div>
+    
+    <div class="test-area" id="testArea">
+        <div class="virtual-cursor" id="cursor"></div>
+    </div>
+    
+    <div class="info">
+        <strong>Event Log:</strong>
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        const cursor = document.getElementById('cursor');
+        const log = document.getElementById('log');
+        const testArea = document.getElementById('testArea');
+        
+        let cursorX = 200;
+        let cursorY = 200;
+        
+        function updateCursor() {
+            cursor.style.left = cursorX + 'px';
+            cursor.style.top = cursorY + 'px';
+        }
+        
+        function addLog(message) {
+            const time = new Date().toLocaleTimeString();
+            log.innerHTML += `[${time}] ${message}<br>`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        updateCursor();
+        
+        // Listen for all mouse events
+        document.addEventListener('mousemove', (e) => {
+            cursorX = Math.max(0, Math.min(testArea.offsetWidth - 20, e.clientX - testArea.offsetLeft));
+            cursorY = Math.max(0, Math.min(testArea.offsetHeight - 20, e.clientY - testArea.offsetTop));
+            updateCursor();
+            addLog(`Mouse move: ${e.clientX}, ${e.clientY} (movement: ${e.movementX}, ${e.movementY})`);
+        });
+        
+        document.addEventListener('mousedown', (e) => {
+            addLog(`Mouse down: button ${e.button} at ${e.clientX}, ${e.clientY}`);
+        });
+        
+        document.addEventListener('mouseup', (e) => {
+            addLog(`Mouse up: button ${e.button} at ${e.clientX}, ${e.clientY}`);
+        });
+        
+        document.addEventListener('click', (e) => {
+            addLog(`Click: button ${e.button} at ${e.clientX}, ${e.clientY}`);
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            addLog(`Key down: ${e.key} (${e.code})`);
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            addLog(`Key up: ${e.key} (${e.code})`);
+        });
+        
+        addLog('Test page loaded. Use bookmarklet to start controller.');
+    </script>
+</body>
+</html>

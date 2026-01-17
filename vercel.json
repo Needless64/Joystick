@@ -1,35 +1,29 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
   "routes": [
     {
       "src": "/mobile",
-      "dest": "/public/mobile.html"
+      "dest": "/mobile.html"
     },
     {
       "src": "/controller",
-      "dest": "/public/controller.html"
+      "dest": "/controller.html"
     },
     {
       "src": "/desktop",
-      "dest": "/public/desktop.html"
+      "dest": "/desktop.html"
     },
     {
       "src": "/test",
-      "dest": "/public/test.html"
+      "dest": "/test.html"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
+      "src": "/api/events",
+      "dest": "/api/events.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "/server.js"
+      "src": "/",
+      "dest": "/api/index.js"
     }
   ]
 }

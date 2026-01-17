@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mobile Touchpad</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #1a1a1a;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            padding: 8px;
+        }
+        
+        .status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+            z-index: 9999;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .settings-btn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            border: 2px solid rgba(255,255,255,1);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 9999;
+            min-width: 50px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .settings-btn:active {
+            background: rgba(255,255,255,1);
+            transform: scale(0.95);
+        }
+        
+        .settings-panel {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            display: none;
+            z-index: 9998;
+            min-width: 200px;
+            border: 2px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        
+        .setting-group {
+            margin-bottom: 12px;
+        }
+        
+        .setting-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+        }
+        
+        .setting-slider {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            border-radius: 2px;
+        }
+        
+        .setting-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #333;
+        }
+        
+        .layout-buttons {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+        }
+        
+        .layout-btn {
+            background: #444;
+            color: white;
+            border: 1px solid #666;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .layout-btn.active {
+            background: #666;
+            border-color: #888;
+        }
+        
+        .layout-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .joystick-side {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #222;
+            border-radius: 8px;
+            margin-right: 8px;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .joystick {
+            border-radius: 50%;
+            background: #333;
+            border: 2px solid #555;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .knob {
+            border-radius: 50%;
+            background: #777;
+            position: absolute;
+            cursor: pointer;
+            border: 1px solid #999;
+            transition: all 0.1s ease;
+        }
+        
+        .knob.active {
+            background: #aaa;
+            border-color: #ccc;
+        }
+        
+        .scroll-label {
+            color: rgba(255,255,255,0.6);
+            font-size: 9px;
+            font-weight: 500;
+        }
+        
+        .touchpad {
+            flex: 1;
+            background: #2a2a2a;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 12px;
+            font-weight: 500;
+            position: relative;
+        }
+        
+        .touchpad.active {
+            background: #333;
+            border-color: #555;
+        }
+        
+        .action-buttons {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            opacity: 0.9;
+            z-index: 1000;
+        }
+        
+        .action-btn {
+            background: #555;
+            color: white;
+            border: 2px solid #777;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            min-width: 40px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .action-btn:active {
+            background: #777;
+            border-color: #999;
+            transform: scale(0.95);
+        }
+        
+        /* Layout variations */
+        .layout-compact .joystick-side { width: 80px; }
+        .layout-compact .joystick { width: 60px; height: 60px; }
+        .layout-compact .knob { width: 24px; height: 24px; top: 18px; left: 18px; }
+        
+        .layout-normal .joystick-side { width: 100px; }
+        .layout-normal .joystick { width: 70px; height: 70px; }
+        .layout-normal .knob { width: 28px; height: 28px; top: 21px; left: 21px; }
+        
+        .layout-large .joystick-side { width: 120px; }
+        .layout-large .joystick { width: 80px; height: 80px; }
+        .layout-large .knob { width: 32px; height: 32px; top: 24px; left: 24px; }
+    </style>
+</head>
+<body class="layout-normal">
+    <div class="status" id="status">●</div>
+    
+    <button class="settings-btn" id="settingsBtn">⚙</button>
+    
+    <div class="settings-panel" id="settingsPanel">
+        <div class="setting-group">
+            <label class="setting-label">Cursor Speed: <span id="cursorVal">5</span>x</label>
+            <input type="range" class="setting-slider" id="cursorSpeed" min="1" max="10" value="5">
+        </div>
+        
+        <div class="setting-group">
+            <label class="setting-label">Scroll Speed: <span id="scrollVal">5</span>x</label>
+            <input type="range" class="setting-slider" id="scrollSpeed" min="1" max="10" value="5">
+        </div>
+        
+        <div class="setting-group">
+            <label class="setting-label">Layout Size:</label>
+            <div class="layout-buttons">
+                <button class="layout-btn" data-layout="compact">Small</button>
+                <button class="layout-btn active" data-layout="normal">Normal</button>
+                <button class="layout-btn" data-layout="large">Large</button>
+            </div>
+        </div>
+        
+        <div class="setting-group">
+            <label class="setting-label">Show Buttons:</label>
+            <div class="layout-buttons">
+                <button class="layout-btn active" id="showButtons">Yes</button>
+                <button class="layout-btn" id="hideButtons">No</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="joystick-side">
+        <div class="joystick">
+            <div class="knob" id="knob"></div>
+        </div>
+        <div class="scroll-label">Scroll</div>
+    </div>
+    
+    <div class="touchpad" id="touchpad">
+        Touchpad
+        
+        <div class="action-buttons" id="actionButtons">
+            <button class="action-btn" id="leftClick">L</button>
+            <button class="action-btn" id="rightClick">R</button>
+        </div>
+    </div>
+
+    <script>
+        const touchpad = document.getElementById('touchpad');
+        const knob = document.getElementById('knob');
+        const status = document.getElementById('status');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const cursorSpeed = document.getElementById('cursorSpeed');
+        const scrollSpeed = document.getElementById('scrollSpeed');
+        const cursorVal = document.getElementById('cursorVal');
+        const scrollVal = document.getElementById('scrollVal');
+        const actionButtons = document.getElementById('actionButtons');
+        const leftClick = document.getElementById('leftClick');
+        const rightClick = document.getElementById('rightClick');
+        const showButtons = document.getElementById('showButtons');
+        const hideButtons = document.getElementById('hideButtons');
+        
+        let ws;
+        let eventSource;
+        let lastX = 0, lastY = 0, lastTime = 0;
+        let touchpadActive = false, joystickActive = false;
+        let currentLayout = 'normal';
+        let joystickDimensions = { centerX: 35, centerY: 35, maxDist: 21 };
+        
+        function connect() {
+            // Use Server-Sent Events for receiving messages
+            eventSource = new EventSource(`/api/events?role=mobile`);
+            
+            eventSource.onopen = () => {
+                status.style.color = '#0f0';
+                console.log('Connected via SSE');
+            };
+            
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'connected') {
+                    status.style.color = '#0f0';
+                } else if (data.type === 'ping') {
+                    // Keep-alive ping, ignore
+                }
+            };
+            
+            eventSource.onerror = () => {
+                status.style.color = '#f00';
+                console.log('SSE connection error, retrying...');
+                setTimeout(connect, 1000);
+            };
+        }
+        connect();
+        
+        function send(type, data) {
+            // Send messages via HTTP POST
+            fetch('/api/events?role=mobile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: { type, ...data }
+                })
+            }).catch(error => {
+                console.error('Error sending message:', error);
+            });
+        }
+        
+        // Settings
+        settingsBtn.onclick = () => {
+            settingsPanel.style.display = settingsPanel.style.display === 'block' ? 'none' : 'block';
+        };
+        
+        cursorSpeed.oninput = () => cursorVal.textContent = cursorSpeed.value;
+        scrollSpeed.oninput = () => scrollVal.textContent = scrollSpeed.value;
+        
+        // Layout switching
+        document.querySelectorAll('[data-layout]').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('[data-layout]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.body.className = 'layout-' + btn.dataset.layout;
+                currentLayout = btn.dataset.layout;
+                updateJoystickDimensions();
+            };
+        });
+        
+        function updateJoystickDimensions() {
+            const dims = {
+                compact: { centerX: 30, centerY: 30, maxDist: 18 },
+                normal: { centerX: 35, centerY: 35, maxDist: 21 },
+                large: { centerX: 40, centerY: 40, maxDist: 24 }
+            };
+            joystickDimensions = dims[currentLayout];
+        }
+        
+        // Button visibility
+        showButtons.onclick = () => {
+            showButtons.classList.add('active');
+            hideButtons.classList.remove('active');
+            actionButtons.style.display = 'flex';
+        };
+        
+        hideButtons.onclick = () => {
+            hideButtons.classList.add('active');
+            showButtons.classList.remove('active');
+            actionButtons.style.display = 'none';
+        };
+        
+        // Touchpad - supports multi-touch
+        let touchpadTouches = new Map();
+        
+        touchpad.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            for (let touch of e.changedTouches) {
+                if (touch.target === touchpad || touchpad.contains(touch.target)) {
+                    touchpadTouches.set(touch.identifier, {
+                        x: touch.clientX,
+                        y: touch.clientY,
+                        time: Date.now()
+                    });
+                }
+            }
+            if (touchpadTouches.size > 0) {
+                touchpadActive = true;
+                touchpad.classList.add('active');
+            }
+        });
+        
+        touchpad.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            for (let touch of e.changedTouches) {
+                if (touchpadTouches.has(touch.identifier)) {
+                    const lastTouch = touchpadTouches.get(touch.identifier);
+                    const dx = touch.clientX - lastTouch.x;
+                    const dy = touch.clientY - lastTouch.y;
+                    
+                    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+                        send('mouseMove', { 
+                            x: dx * cursorSpeed.value * 0.5, 
+                            y: dy * cursorSpeed.value * 0.5 
+                        });
+                        
+                        touchpadTouches.set(touch.identifier, {
+                            x: touch.clientX,
+                            y: touch.clientY,
+                            time: lastTouch.time
+                        });
+                    }
+                }
+            }
+        });
+        
+        touchpad.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            for (let touch of e.changedTouches) {
+                if (touchpadTouches.has(touch.identifier)) {
+                    const touchData = touchpadTouches.get(touch.identifier);
+                    // Quick tap = click
+                    if (Date.now() - touchData.time < 200) {
+                        send('click', { button: 'left', action: 'tap' });
+                    }
+                    touchpadTouches.delete(touch.identifier);
+                }
+            }
+            
+            if (touchpadTouches.size === 0) {
+                touchpadActive = false;
+                touchpad.classList.remove('active');
+            }
+        });
+        
+        // Joystick - independent of touchpad
+        let joystickTouch = null;
+        
+        knob.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            joystickTouch = e.touches[0].identifier;
+            joystickActive = true;
+            knob.classList.add('active');
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (joystickTouch !== null) {
+                for (let touch of e.touches) {
+                    if (touch.identifier === joystickTouch) {
+                        e.preventDefault();
+                        const rect = knob.parentElement.getBoundingClientRect();
+                        let dx = touch.clientX - (rect.left + joystickDimensions.centerX);
+                        let dy = touch.clientY - (rect.top + joystickDimensions.centerY);
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        
+                        if (dist > joystickDimensions.maxDist) {
+                            dx = dx/dist * joystickDimensions.maxDist;
+                            dy = dy/dist * joystickDimensions.maxDist;
+                        }
+                        
+                        const centerOffset = currentLayout === 'compact' ? 18 : 
+                                           currentLayout === 'large' ? 24 : 21;
+                        knob.style.left = (centerOffset + dx) + 'px';
+                        knob.style.top = (centerOffset + dy) + 'px';
+                        
+                        send('joystick', { 
+                            x: dx/joystickDimensions.maxDist * scrollSpeed.value, 
+                            y: dy/joystickDimensions.maxDist * scrollSpeed.value 
+                        });
+                        break;
+                    }
+                }
+            }
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            for (let touch of e.changedTouches) {
+                if (touch.identifier === joystickTouch) {
+                    e.preventDefault();
+                    joystickTouch = null;
+                    joystickActive = false;
+                    knob.classList.remove('active');
+                    const centerOffset = currentLayout === 'compact' ? 18 : 
+                                       currentLayout === 'large' ? 24 : 21;
+                    knob.style.left = centerOffset + 'px';
+                    knob.style.top = centerOffset + 'px';
+                    send('joystick', { x: 0, y: 0 });
+                    break;
+                }
+            }
+        });
+        
+        // Action buttons
+        leftClick.ontouchstart = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            send('click', { button: 'left', action: 'down' });
+        };
+        
+        leftClick.ontouchend = (e) => {
+            e.preventDefault();
+            send('click', { button: 'left', action: 'up' });
+        };
+        
+        rightClick.ontouchstart = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            send('click', { button: 'right', action: 'down' });
+        };
+        
+        rightClick.ontouchend = (e) => {
+            e.preventDefault();
+            send('click', { button: 'right', action: 'up' });
+        };
+        
+        // Prevent context menu and other interference
+        document.oncontextmenu = (e) => e.preventDefault();
+        
+        // Close settings when clicking outside
+        document.onclick = (e) => {
+            if (!settingsPanel.contains(e.target) && e.target !== settingsBtn) {
+                settingsPanel.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
