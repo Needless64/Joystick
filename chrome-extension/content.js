@@ -19,8 +19,9 @@ console.log('Mobile Touchpad Controller content script loading...');
             if (!result.extensionDisabled && !window.mobileTouchpadController) {
                 // Get server settings and auto-activate
                 chrome.storage.sync.get(['serverPort', 'serverHost'], (settings) => {
-                    const host = settings.serverHost || 'localhost';
-                    const port = settings.serverPort || '3000';
+                    // Default to Vercel deployment
+                    const host = settings.serverHost || 'joystick-delta.vercel.app';
+                    const port = settings.serverPort || '443';
                     
                     // Auto-inject the touchpad controller
                     injectTouchpadController(host, port);
@@ -48,8 +49,9 @@ console.log('Mobile Touchpad Controller content script loading...');
             } else if (request.action === 'activate') {
                 // Manually activate (in case auto-activation failed)
                 chrome.storage.sync.get(['serverPort', 'serverHost'], (settings) => {
-                    const host = settings.serverHost || 'localhost';
-                    const port = settings.serverPort || '3000';
+                    // Default to Vercel deployment
+                    const host = settings.serverHost || 'joystick-delta.vercel.app';
+                    const port = settings.serverPort || '443';
                     injectTouchpadController(host, port);
                     sendResponse({ success: true });
                 });
@@ -173,12 +175,16 @@ console.log('Mobile Touchpad Controller content script loading...');
             },
             
             connectWebSocket: function(host, port) {
-                // Determine server URL
+                // Determine server URL - prioritize Vercel deployment
                 let serverUrl;
                 if (host.includes('vercel.app') || host.includes('http')) {
                     serverUrl = host.startsWith('http') ? host : `https://${host}`;
-                } else {
+                } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    // Local development
                     serverUrl = `http://${host}:${port}`;
+                } else {
+                    // Default to Vercel deployment
+                    serverUrl = 'https://joystick-delta.vercel.app';
                 }
                 
                 this.serverUrl = serverUrl;

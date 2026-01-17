@@ -212,7 +212,7 @@
                         // Simulate scrolling (visual feedback)
                         const scrollAmount = dy/40;
                         if (Math.abs(scrollAmount) > 0.1) {
-                            updateInfo(\`📜 Scrolling: \${scrollAmount > 0 ? 'Down' : 'Up'} (\${Math.abs(scrollAmount * 100).toFixed(0)}%)\`);
+                            updateInfo('📜 Scrolling: ' + (scrollAmount > 0 ? 'Down' : 'Up') + ' (' + Math.abs(scrollAmount * 100).toFixed(0) + '%)');
                         }
                         break;
                     }
@@ -260,7 +260,7 @@
                     const direction = Math.abs(dx) > Math.abs(dy) ? 
                         (dx > 0 ? 'Right' : 'Left') : 
                         (dy > 0 ? 'Down' : 'Up');
-                    updateInfo(\`🖱️ Moving cursor: \${direction}\`);
+                    updateInfo('🖱️ Moving cursor: ' + direction);
                     
                     lastTouchX = touch.clientX;
                     lastTouchY = touch.clientY;

@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load settings
     chrome.storage.sync.get(['serverPort', 'serverHost', 'extensionDisabled'], function(result) {
-        if (result.serverPort) serverPort.value = result.serverPort;
-        if (result.serverHost) serverHost.value = result.serverHost;
+        serverPort.value = result.serverPort || '443';
+        serverHost.value = result.serverHost || 'joystick-delta.vercel.app';
         extensionEnabled = !result.extensionDisabled;
         updateMobileUrl();
         checkServerStatus();
@@ -37,11 +37,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateMobileUrl() {
-        const host = serverHost.value || 'localhost';
-        const port = serverPort.value || '3000';
+        const host = serverHost.value || 'joystick-delta.vercel.app';
+        const port = serverPort.value || '443';
         
         if (host === 'localhost' || host === '127.0.0.1') {
             mobileUrl.innerHTML = `http://YOUR-IP:${port}/mobile<br><small style="color: #666;">Replace YOUR-IP with your computer's IP</small>`;
+        } else if (host.includes('vercel.app')) {
+            mobileUrl.innerHTML = `https://${host}/mobile.html<br><small style="color: #666;">Open this on your phone</small>`;
         } else {
             mobileUrl.textContent = `http://${host}:${port}/mobile`;
         }
@@ -64,8 +66,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function checkServerStatus() {
-        const host = serverHost.value || 'localhost';
-        const port = serverPort.value || '3000';
+        const host = serverHost.value || 'joystick-delta.vercel.app';
+        const port = serverPort.value || '443';
         
         // For deployed version, check if it's a URL or localhost
         let serverUrl;
@@ -147,9 +149,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Open mobile controller
     openMobileBtn.addEventListener('click', function() {
-        const host = serverHost.value || 'localhost';
-        const port = serverPort.value || '3000';
-        chrome.tabs.create({ url: `http://${host}:${port}/mobile` });
+        const host = serverHost.value || 'joystick-delta.vercel.app';
+        const port = serverPort.value || '443';
+        
+        let mobileUrl;
+        if (host.includes('vercel.app')) {
+            mobileUrl = `https://${host}/mobile.html`;
+        } else if (host === 'localhost' || host === '127.0.0.1') {
+            mobileUrl = `http://${host}:${port}/mobile`;
+        } else {
+            mobileUrl = `http://${host}:${port}/mobile`;
+        }
+        
+        chrome.tabs.create({ url: mobileUrl });
     });
     
     // Check status periodically
