@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Working Mobile Touchpad</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #1a1a1a;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+            font-family: Arial, sans-serif;
+            display: flex;
+            color: white;
+        }
+        
+        .status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: #0f0;
+            font-size: 16px;
+            z-index: 9999;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .joystick-area {
+            width: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #222;
+            margin: 10px;
+            border-radius: 10px;
+        }
+        
+        .joystick {
+            width: 120px;
+            height: 120px;
+            border: 3px solid #555;
+            border-radius: 50%;
+            position: relative;
+            background: #333;
+            margin: 20px;
+        }
+        
+        .knob {
+            width: 40px;
+            height: 40px;
+            background: #777;
+            border-radius: 50%;
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            border: 2px solid #999;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        
+        .knob.active {
+            background: #aaa;
+            border-color: #ccc;
+        }
+        
+        .label {
+            color: #ccc;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .touchpad {
+            flex: 1;
+            background: #2a2a2a;
+            border: 3px solid #555;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #666;
+            position: relative;
+            margin: 10px;
+        }
+        
+        .touchpad.active {
+            background: #333;
+            border-color: #777;
+            color: #aaa;
+        }
+        
+        .buttons {
+            position: absolute;
+            bottom: 30px;
+            display: flex;
+            gap: 20px;
+        }
+        
+        .btn {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 2px solid #777;
+        }
+        
+        .btn:active {
+            background: #777;
+            border-color: #999;
+        }
+        
+        .info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="status" id="status">📱 Ready to Control</div>
+    
+    <div class="joystick-area">
+        <div class="label">Scroll Control</div>
+        <div class="joystick">
+            <div class="knob" id="knob"></div>
+        </div>
+    </div>
+    
+    <div class="touchpad" id="touchpad">
+        <div>Touchpad</div>
+        <div style="font-size: 14px; margin-top: 10px; color: #888;">Move finger to control cursor</div>
+        
+        <div class="buttons">
+            <button class="btn" id="leftBtn">Left Click</button>
+            <button class="btn" id="rightBtn">Right Click</button>
+        </div>
+    </div>
+    
+    <div class="info" id="info">
+        Touch the joystick to scroll • Move finger on touchpad to control cursor • Tap buttons to click
+    </div>
+
+    <script>
+        const status = document.getElementById('status');
+        const info = document.getElementById('info');
+        const knob = document.getElementById('knob');
+        const touchpad = document.getElementById('touchpad');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        
+        let joystickActive = false;
+        let touchpadActive = false;
+        let lastTouchX = 0, lastTouchY = 0;
+        
+        // Simple logging
+        function updateInfo(message) {
+            info.textContent = message;
+            setTimeout(() => {
+                info.textContent = 'Touch the joystick to scroll • Move finger on touchpad to control cursor • Tap buttons to click';
+            }, 2000);
+        }
+        
+        // Joystick handling
+        let joystickTouch = null;
+        
+        knob.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            joystickTouch = e.touches[0].identifier;
+            joystickActive = true;
+            knob.classList.add('active');
+            updateInfo('🕹️ Joystick active - Move to scroll');
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (joystickTouch !== null) {
+                for (let touch of e.touches) {
+                    if (touch.identifier === joystickTouch) {
+                        e.preventDefault();
+                        const rect = knob.parentElement.getBoundingClientRect();
+                        let dx = touch.clientX - (rect.left + 60);
+                        let dy = touch.clientY - (rect.top + 60);
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        
+                        if (dist > 40) {
+                            dx = dx/dist * 40;
+                            dy = dy/dist * 40;
+                        }
+                        
+                        knob.style.left = (40 + dx) + 'px';
+                        knob.style.top = (40 + dy) + 'px';
+                        
+                        // Simulate scrolling (visual feedback)
+                        const scrollAmount = dy/40;
+                        if (Math.abs(scrollAmount) > 0.1) {
+                            updateInfo(\`📜 Scrolling: \${scrollAmount > 0 ? 'Down' : 'Up'} (\${Math.abs(scrollAmount * 100).toFixed(0)}%)\`);
+                        }
+                        break;
+                    }
+                }
+            }
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            for (let touch of e.changedTouches) {
+                if (touch.identifier === joystickTouch) {
+                    e.preventDefault();
+                    joystickTouch = null;
+                    joystickActive = false;
+                    knob.classList.remove('active');
+                    knob.style.left = '40px';
+                    knob.style.top = '40px';
+                    updateInfo('🕹️ Joystick released');
+                    break;
+                }
+            }
+        });
+        
+        // Touchpad handling
+        touchpad.addEventListener('touchstart', (e) => {
+            if (e.target === touchpad || touchpad.contains(e.target)) {
+                e.preventDefault();
+                touchpadActive = true;
+                touchpad.classList.add('active');
+                const touch = e.touches[0];
+                lastTouchX = touch.clientX;
+                lastTouchY = touch.clientY;
+                updateInfo('👆 Touchpad active - Move finger to control cursor');
+            }
+        });
+        
+        touchpad.addEventListener('touchmove', (e) => {
+            if (touchpadActive) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const dx = touch.clientX - lastTouchX;
+                const dy = touch.clientY - lastTouchY;
+                
+                if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                    // Simulate cursor movement (visual feedback)
+                    const direction = Math.abs(dx) > Math.abs(dy) ? 
+                        (dx > 0 ? 'Right' : 'Left') : 
+                        (dy > 0 ? 'Down' : 'Up');
+                    updateInfo(\`🖱️ Moving cursor: \${direction}\`);
+                    
+                    lastTouchX = touch.clientX;
+                    lastTouchY = touch.clientY;
+                }
+            }
+        });
+        
+        touchpad.addEventListener('touchend', (e) => {
+            if (touchpadActive) {
+                e.preventDefault();
+                touchpadActive = false;
+                touchpad.classList.remove('active');
+                updateInfo('👆 Touchpad released');
+            }
+        });
+        
+        // Button handling
+        leftBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            updateInfo('🖱️ Left Click!');
+        });
+        
+        rightBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            updateInfo('🖱️ Right Click!');
+        });
+        
+        // Prevent context menu and scrolling
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+        
+        // Show ready status
+        setTimeout(() => {
+            status.textContent = '📱 Mobile Touchpad Ready!';
+            status.style.color = '#0f0';
+        }, 500);
+    </script>
+</body>
+</html>
