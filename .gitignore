@@ -121,3 +121,4 @@ Thumbs.db
 # Chrome extension development
 chrome-extension/*.crx
 chrome-extension/*.pem
+.vercel

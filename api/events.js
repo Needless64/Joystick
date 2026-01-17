@@ -1,80 +1,67 @@
-// Server-Sent Events endpoint for real-time communication
-// This replaces WebSocket for Vercel deployment
+// Simple polling-based communication for Vercel
+// Since serverless functions don't maintain state, we'll use a simple polling approach
 
-let clients = {
-  mobile: [],
-  desktop: []
-};
+let messages = [];
+let lastCleanup = Date.now();
 
-// Clean up disconnected clients periodically
-setInterval(() => {
-  clients.mobile = clients.mobile.filter(client => !client.res.destroyed);
-  clients.desktop = clients.desktop.filter(client => !client.res.destroyed);
-}, 30000);
+// Simple cleanup every 5 minutes
+function cleanup() {
+  const now = Date.now();
+  if (now - lastCleanup > 300000) { // 5 minutes
+    messages = messages.filter(msg => now - msg.timestamp < 60000); // Keep messages for 1 minute
+    lastCleanup = now;
+  }
+}
 
 export default function handler(req, res) {
+  cleanup();
+  
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   const { role } = req.query;
 
   if (req.method === 'GET') {
-    // Server-Sent Events connection
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control'
-    });
-
-    const clientId = Date.now() + Math.random();
-    const client = { id: clientId, res, lastSeen: Date.now() };
-
-    if (role === 'mobile') {
-      clients.mobile.push(client);
-      console.log('Mobile client connected via SSE');
-    } else if (role === 'desktop') {
-      clients.desktop.push(client);
-      console.log('Desktop client connected via SSE');
+    if (role === 'desktop') {
+      // Desktop polling for messages
+      const recentMessages = messages.filter(msg => 
+        Date.now() - msg.timestamp < 5000 && // Last 5 seconds
+        msg.target === 'desktop'
+      );
+      
+      res.status(200).json({ 
+        messages: recentMessages,
+        timestamp: Date.now()
+      });
+    } else {
+      // Mobile just gets connection status
+      res.status(200).json({ 
+        status: 'connected',
+        timestamp: Date.now()
+      });
     }
-
-    // Send initial connection message
-    res.write(`data: ${JSON.stringify({ type: 'connected', role })}\n\n`);
-
-    // Keep connection alive
-    const keepAlive = setInterval(() => {
-      if (!res.destroyed) {
-        res.write(`data: ${JSON.stringify({ type: 'ping' })}\n\n`);
-      } else {
-        clearInterval(keepAlive);
-      }
-    }, 25000);
-
-    // Handle client disconnect
-    req.on('close', () => {
-      clearInterval(keepAlive);
-      if (role === 'mobile') {
-        clients.mobile = clients.mobile.filter(c => c.id !== clientId);
-        console.log('Mobile client disconnected');
-      } else if (role === 'desktop') {
-        clients.desktop = clients.desktop.filter(c => c.id !== clientId);
-        console.log('Desktop client disconnected');
-      }
-    });
-
   } else if (req.method === 'POST') {
     // Handle messages from mobile clients
-    const { message } = req.body;
+    const body = req.body;
     
-    if (role === 'mobile' && message) {
-      // Broadcast to all desktop clients
-      clients.desktop.forEach(client => {
-        if (!client.res.destroyed) {
-          try {
-            client.res.write(`data: ${JSON.stringify(message)}\n\n`);
-          } catch (error) {
-            console.error('Error sending to desktop client:', error);
-          }
-        }
+    if (role === 'mobile' && body.message) {
+      // Store message for desktop clients
+      messages.push({
+        ...body.message,
+        target: 'desktop',
+        timestamp: Date.now(),
+        id: Math.random().toString(36)
       });
+      
+      // Keep only recent messages
+      messages = messages.filter(msg => Date.now() - msg.timestamp < 60000);
     }
 
     res.status(200).json({ success: true });

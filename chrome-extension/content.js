@@ -181,32 +181,38 @@ console.log('Mobile Touchpad Controller content script loading...');
                     serverUrl = `http://${host}:${port}`;
                 }
                 
-                // Use Server-Sent Events for receiving messages
-                this.eventSource = new EventSource(`${serverUrl}/api/events?role=desktop`);
+                this.serverUrl = serverUrl;
+                this.indicator.style.background = '#28a745';
+                this.indicator.textContent = '📱 Mobile Touchpad Connected';
                 
-                this.eventSource.onopen = () => {
-                    this.indicator.style.background = '#28a745';
-                    this.indicator.textContent = '📱 Mobile Touchpad Connected';
-                };
-                
-                this.eventSource.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    if (data.type !== 'ping' && data.type !== 'connected') {
-                        this.handleMessage(data);
-                    }
-                };
-                
-                this.eventSource.onerror = () => {
-                    this.indicator.style.background = '#ffc107';
-                    this.indicator.textContent = '📱 Mobile Touchpad Reconnecting...';
+                // Start polling for messages
+                this.startPolling();
+            },
+            
+            startPolling: function() {
+                const poll = () => {
+                    if (!this.active) return;
                     
-                    // Try to reconnect after 2 seconds
-                    setTimeout(() => {
-                        if (this.active) {
-                            this.connectWebSocket(host, port);
-                        }
-                    }, 2000);
+                    fetch(`${this.serverUrl}/api/events?role=desktop`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.messages && data.messages.length > 0) {
+                                data.messages.forEach(message => {
+                                    this.handleMessage(message);
+                                });
+                            }
+                            // Continue polling
+                            setTimeout(poll, 100); // Poll every 100ms for responsiveness
+                        })
+                        .catch(error => {
+                            console.error('Polling error:', error);
+                            this.indicator.style.background = '#ffc107';
+                            this.indicator.textContent = '📱 Mobile Touchpad Reconnecting...';
+                            setTimeout(poll, 2000); // Retry after 2 seconds
+                        });
                 };
+                
+                poll();
             },
             
             handleMessage: function(data) {
