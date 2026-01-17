@@ -67,49 +67,46 @@ document.addEventListener('DOMContentLoaded', function() {
         const host = serverHost.value || 'localhost';
         const port = serverPort.value || '3000';
         
-        // Try to connect to WebSocket to check if server is running
-        const ws = new WebSocket(`ws://${host}:${port}/?role=desktop`);
+        // For deployed version, check if it's a URL or localhost
+        let serverUrl;
+        if (host.includes('vercel.app') || host.includes('http')) {
+            serverUrl = host.startsWith('http') ? host : `https://${host}`;
+        } else {
+            serverUrl = `http://${host}:${port}`;
+        }
         
-        const timeout = setTimeout(() => {
-            ws.close();
-            if (extensionEnabled) {
-                updateStatus('disconnected', 'Server not running - Extension enabled but waiting for server');
-            } else {
-                updateStatus('disconnected', 'Extension disabled');
-            }
-        }, 3000);
-        
-        ws.onopen = function() {
-            clearTimeout(timeout);
-            ws.close();
-            
-            if (extensionEnabled) {
-                // Check if controller is active on current tab
-                chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-                    currentTab = tabs[0];
-                    chrome.tabs.sendMessage(currentTab.id, {action: 'checkStatus'}, function(response) {
-                        if (chrome.runtime.lastError) {
-                            updateStatus('connected', 'Server running - Auto-activating on tabs');
-                        } else if (response && response.active) {
-                            updateStatus('active', 'Auto-active on this tab');
-                        } else {
-                            updateStatus('connected', 'Server running - Auto-activating on tabs');
-                        }
-                    });
-                });
-            } else {
-                updateStatus('connected', 'Server running but extension disabled');
-            }
-        };
-        
-        ws.onerror = function() {
-            clearTimeout(timeout);
-            if (extensionEnabled) {
-                updateStatus('disconnected', 'Server not running - Extension enabled but waiting for server');
-            } else {
-                updateStatus('disconnected', 'Extension disabled');
-            }
-        };
+        // Try to connect to the server
+        fetch(`${serverUrl}/api/events?role=desktop`)
+            .then(response => {
+                if (response.ok) {
+                    if (extensionEnabled) {
+                        // Check if controller is active on current tab
+                        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                            currentTab = tabs[0];
+                            chrome.tabs.sendMessage(currentTab.id, {action: 'checkStatus'}, function(response) {
+                                if (chrome.runtime.lastError) {
+                                    updateStatus('connected', 'Server running - Auto-activating on tabs');
+                                } else if (response && response.active) {
+                                    updateStatus('active', 'Auto-active on this tab');
+                                } else {
+                                    updateStatus('connected', 'Server running - Auto-activating on tabs');
+                                }
+                            });
+                        });
+                    } else {
+                        updateStatus('connected', 'Server running but extension disabled');
+                    }
+                } else {
+                    throw new Error('Server not responding');
+                }
+            })
+            .catch(() => {
+                if (extensionEnabled) {
+                    updateStatus('disconnected', 'Server not running - Extension enabled but waiting for server');
+                } else {
+                    updateStatus('disconnected', 'Extension disabled');
+                }
+            });
     }
     
     // Enable extension globally

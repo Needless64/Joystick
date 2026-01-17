@@ -173,19 +173,30 @@ console.log('Mobile Touchpad Controller content script loading...');
             },
             
             connectWebSocket: function(host, port) {
-                this.ws = new WebSocket(`ws://${host}:${port}/?role=desktop`);
+                // Determine server URL
+                let serverUrl;
+                if (host.includes('vercel.app') || host.includes('http')) {
+                    serverUrl = host.startsWith('http') ? host : `https://${host}`;
+                } else {
+                    serverUrl = `http://${host}:${port}`;
+                }
                 
-                this.ws.onopen = () => {
+                // Use Server-Sent Events for receiving messages
+                this.eventSource = new EventSource(`${serverUrl}/api/events?role=desktop`);
+                
+                this.eventSource.onopen = () => {
                     this.indicator.style.background = '#28a745';
                     this.indicator.textContent = '📱 Mobile Touchpad Connected';
                 };
                 
-                this.ws.onmessage = (event) => {
+                this.eventSource.onmessage = (event) => {
                     const data = JSON.parse(event.data);
-                    this.handleMessage(data);
+                    if (data.type !== 'ping' && data.type !== 'connected') {
+                        this.handleMessage(data);
+                    }
                 };
                 
-                this.ws.onclose = () => {
+                this.eventSource.onerror = () => {
                     this.indicator.style.background = '#ffc107';
                     this.indicator.textContent = '📱 Mobile Touchpad Reconnecting...';
                     
@@ -195,11 +206,6 @@ console.log('Mobile Touchpad Controller content script loading...');
                             this.connectWebSocket(host, port);
                         }
                     }, 2000);
-                };
-                
-                this.ws.onerror = () => {
-                    this.indicator.style.background = '#dc3545';
-                    this.indicator.textContent = '📱 Mobile Touchpad Server Offline';
                 };
             },
             
@@ -269,6 +275,11 @@ console.log('Mobile Touchpad Controller content script loading...');
                 if (this.ws) {
                     this.ws.close();
                     this.ws = null;
+                }
+                
+                if (this.eventSource) {
+                    this.eventSource.close();
+                    this.eventSource = null;
                 }
                 
                 if (this.indicator) {

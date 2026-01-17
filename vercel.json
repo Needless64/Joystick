@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/mobile",
+      "dest": "/public/mobile.html"
+    },
+    {
+      "src": "/controller",
+      "dest": "/public/controller.html"
+    },
+    {
+      "src": "/desktop",
+      "dest": "/public/desktop.html"
+    },
+    {
+      "src": "/test",
+      "dest": "/public/test.html"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/server.js"
+    }
+  ],
+  "functions": {
+    "server.js": {
+      "maxDuration": 30
+    }
+  }
+}
