@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Connection Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .error { border-left-color: #dc3545; background: #2d1b1b; }
+        .success { border-left-color: #28a745; background: #1b2d1b; }
+        .warning { border-left-color: #ffc107; background: #2d2a1b; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        button:hover { background: #0056b3; }
+        .log {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .test-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .test-card {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Mobile Touchpad Connection Debug</h1>
+    
+    <div id="status" class="status">
+        🔄 Initializing connection tests...
+    </div>
+    
+    <div>
+        <button onclick="runAllTests()">🚀 Run All Tests</button>
+        <button onclick="testAPI()">📡 Test API</button>
+        <button onclick="testMobileConnection()">📱 Test Mobile Connection</button>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+    </div>
+    
+    <div class="test-results" id="testResults"></div>
+    
+    <div class="log" id="debugLog"></div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const logEl = document.getElementById('debugLog');
+        const resultsEl = document.getElementById('testResults');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logEl.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        function addTestResult(title, status, details) {
+            const card = document.createElement('div');
+            card.className = `test-card ${status}`;
+            card.innerHTML = `
+                <h3>${title}</h3>
+                <p><strong>Status:</strong> ${status === 'success' ? '✅ PASS' : status === 'error' ? '❌ FAIL' : '⚠️ WARNING'}</p>
+                <p><strong>Details:</strong> ${details}</p>
+            `;
+            resultsEl.appendChild(card);
+        }
+        
+        function clearLog() {
+            logEl.textContent = '';
+            resultsEl.innerHTML = '';
+        }
+        
+        async function testAPI() {
+            log('🔍 Testing API connectivity...');
+            
+            try {
+                const url = 'https://joystick-delta.vercel.app/api/events?role=mobile';
+                log(`Fetching: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`Response: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                log(`Data: ${JSON.stringify(data, null, 2)}`);
+                
+                if (data.success) {
+                    addTestResult('API Connectivity', 'success', `API is responding correctly. Queue size: ${data.queueSize}`);
+                    return true;
+                } else {
+                    throw new Error('API returned success: false');
+                }
+                
+            } catch (error) {
+                log(`❌ API test failed: ${error.message}`, 'error');
+                addTestResult('API Connectivity', 'error', error.message);
+                return false;
+            }
+        }
+        
+        async function testMobileConnection() {
+            log('📱 Testing mobile connection simulation...');
+            
+            try {
+                // Test sending a message
+                const url = 'https://joystick-delta.vercel.app/api/events?role=mobile';
+                const testMessage = {
+                    message: {
+                        type: 'test',
+                        data: 'Connection test',
+                        timestamp: Date.now()
+                    }
+                };
+                
+                log('Sending test message...');
+                const sendResponse = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testMessage)
+                });
+                
+                if (!sendResponse.ok) {
+                    throw new Error(`Send failed: ${sendResponse.status}`);
+                }
+                
+                const sendResult = await sendResponse.json();
+                log(`Send result: ${JSON.stringify(sendResult)}`);
+                
+                if (!sendResult.success) {
+                    throw new Error('Send returned success: false');
+                }
+                
+                // Test receiving the message
+                log('Testing message retrieval...');
+                const receiveResponse = await fetch('https://joystick-delta.vercel.app/api/events?role=desktop');
+                
+                if (!receiveResponse.ok) {
+                    throw new Error(`Receive failed: ${receiveResponse.status}`);
+                }
+                
+                const receiveResult = await receiveResponse.json();
+                log(`Receive result: ${JSON.stringify(receiveResult)}`);
+                
+                if (receiveResult.success && receiveResult.messages.length > 0) {
+                    addTestResult('Mobile Connection', 'success', `Message flow working. Sent and received ${receiveResult.messages.length} messages.`);
+                    return true;
+                } else {
+                    addTestResult('Mobile Connection', 'warning', 'API working but no messages in queue (this is normal if no recent activity)');
+                    return true;
+                }
+                
+            } catch (error) {
+                log(`❌ Mobile connection test failed: ${error.message}`, 'error');
+                addTestResult('Mobile Connection', 'error', error.message);
+                return false;
+            }
+        }
+        
+        async function testBrowserCompatibility() {
+            log('🌐 Testing browser compatibility...');
+            
+            const tests = [];
+            
+            // Test fetch API
+            if (typeof fetch !== 'undefined') {
+                tests.push('✅ Fetch API supported');
+            } else {
+                tests.push('❌ Fetch API not supported');
+            }
+            
+            // Test async/await
+            try {
+                eval('(async () => {})');
+                tests.push('✅ Async/await supported');
+            } catch (e) {
+                tests.push('❌ Async/await not supported');
+            }
+            
+            // Test touch events
+            if ('ontouchstart' in window) {
+                tests.push('✅ Touch events supported');
+            } else {
+                tests.push('⚠️ Touch events not supported (desktop browser?)');
+            }
+            
+            // Test CORS
+            try {
+                const corsTest = await fetch('https://joystick-delta.vercel.app/api/events?role=mobile', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                tests.push('✅ CORS working');
+            } catch (e) {
+                tests.push('❌ CORS failed: ' + e.message);
+            }
+            
+            addTestResult('Browser Compatibility', 'success', tests.join('<br>'));
+            return true;
+        }
+        
+        async function runAllTests() {
+            clearLog();
+            updateStatus('🔄 Running comprehensive tests...', 'info');
+            
+            log('🚀 Starting comprehensive connection tests...');
+            log(`Current URL: ${window.location.href}`);
+            log(`User Agent: ${navigator.userAgent}`);
+            log(`Online: ${navigator.onLine}`);
+            log(`Touch support: ${'ontouchstart' in window}`);
+            
+            const results = [];
+            
+            // Run all tests
+            results.push(await testBrowserCompatibility());
+            results.push(await testAPI());
+            results.push(await testMobileConnection());
+            
+            const passed = results.filter(r => r).length;
+            const total = results.length;
+            
+            if (passed === total) {
+                updateStatus(`✅ All tests passed (${passed}/${total})`, 'success');
+                log('🎉 All tests completed successfully!', 'success');
+            } else {
+                updateStatus(`⚠️ Some tests failed (${passed}/${total})`, 'warning');
+                log(`⚠️ ${total - passed} tests failed`, 'warning');
+            }
+        }
+        
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            log('🔧 Debug page loaded');
+            setTimeout(runAllTests, 1000);
+        });
+        
+        // Error handling
+        window.addEventListener('error', (event) => {
+            log(`❌ JavaScript Error: ${event.error.message}`, 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            log(`❌ Promise Rejection: ${event.reason}`, 'error');
+        });
+    </script>
+</body>
+</html>

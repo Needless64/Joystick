@@ -18,8 +18,24 @@
       "dest": "/test.html"
     },
     {
+      "src": "/debug-mobile.html",
+      "dest": "/debug-mobile.html"
+    },
+    {
+      "src": "/test-deployment.html",
+      "dest": "/test-deployment.html"
+    },
+    {
       "src": "/api/events",
       "dest": "/api/events.js"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico))",
+      "dest": "/$1"
     },
     {
       "src": "/",
