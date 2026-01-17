@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Deployment Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Mobile Touchpad Deployment Test</h1>
+    
+    <div class="test-section">
+        <h2>📡 API Connectivity Tests</h2>
+        <button onclick="testMobileAPI()">Test Mobile API</button>
+        <button onclick="testDesktopAPI()">Test Desktop API</button>
+        <button onclick="testMessageFlow()">Test Message Flow</button>
+        <div id="apiResults"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📱 Interface Tests</h2>
+        <button onclick="testMobileInterface()">Test Mobile Interface</button>
+        <button onclick="testChromeExtension()">Open Chrome Extension</button>
+        <div id="interfaceResults"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔗 Quick Links</h2>
+        <a href="https://joystick-delta.vercel.app/" target="_blank">
+            <button>🏠 Home Page</button>
+        </a>
+        <a href="https://joystick-delta.vercel.app/mobile.html" target="_blank">
+            <button>📱 Mobile Controller</button>
+        </a>
+        <a href="https://github.com/Needless64/Joystick" target="_blank">
+            <button>📚 GitHub Repository</button>
+        </a>
+    </div>
+    
+    <div class="test-section">
+        <h2>📋 Test Log</h2>
+        <div id="testLog" class="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        const API_BASE = 'https://joystick-delta.vercel.app';
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEl = document.getElementById('testLog');
+            logEl.innerHTML += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        function showResult(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML += `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '';
+        }
+        
+        async function testMobileAPI() {
+            log('Testing Mobile API connection...');
+            try {
+                const response = await fetch(`${API_BASE}/api/events?role=mobile`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('Mobile API: SUCCESS - ' + data.message);
+                    showResult('apiResults', '✅ Mobile API is working correctly', 'success');
+                } else {
+                    throw new Error('API returned error');
+                }
+            } catch (error) {
+                log('Mobile API: ERROR - ' + error.message);
+                showResult('apiResults', '❌ Mobile API failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function testDesktopAPI() {
+            log('Testing Desktop API connection...');
+            try {
+                const response = await fetch(`${API_BASE}/api/events?role=desktop`);
+                const data = await response.json();
+                
+                if (data.success && Array.isArray(data.messages)) {
+                    log('Desktop API: SUCCESS - Received ' + data.messages.length + ' messages');
+                    showResult('apiResults', '✅ Desktop API is working correctly', 'success');
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                log('Desktop API: ERROR - ' + error.message);
+                showResult('apiResults', '❌ Desktop API failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function testMessageFlow() {
+            log('Testing message flow (Mobile → Desktop)...');
+            try {
+                // Send a test message
+                const testMessage = {
+                    message: {
+                        type: 'test',
+                        data: 'Deployment test message',
+                        timestamp: Date.now()
+                    }
+                };
+                
+                const sendResponse = await fetch(`${API_BASE}/api/events?role=mobile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testMessage)
+                });
+                
+                const sendResult = await sendResponse.json();
+                if (!sendResult.success) {
+                    throw new Error('Failed to send message');
+                }
+                
+                log('Message sent successfully, checking desktop...');
+                
+                // Check if desktop receives the message
+                const receiveResponse = await fetch(`${API_BASE}/api/events?role=desktop`);
+                const receiveResult = await receiveResponse.json();
+                
+                if (receiveResult.success && receiveResult.messages.length > 0) {
+                    const receivedMessage = receiveResult.messages.find(m => m.type === 'test');
+                    if (receivedMessage) {
+                        log('Message flow: SUCCESS - Message received by desktop');
+                        showResult('apiResults', '✅ Message flow is working correctly', 'success');
+                    } else {
+                        throw new Error('Test message not found in desktop queue');
+                    }
+                } else {
+                    throw new Error('No messages received by desktop');
+                }
+            } catch (error) {
+                log('Message flow: ERROR - ' + error.message);
+                showResult('apiResults', '❌ Message flow failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function testMobileInterface() {
+            log('Testing mobile interface...');
+            try {
+                const response = await fetch(`${API_BASE}/mobile.html`);
+                const html = await response.text();
+                
+                if (html.includes('📱 Mobile Touchpad Controller')) {
+                    log('Mobile interface: SUCCESS - New interface deployed');
+                    showResult('interfaceResults', '✅ Mobile interface is updated and working', 'success');
+                } else if (html.includes('Mobile Touchpad')) {
+                    log('Mobile interface: WARNING - Old interface still deployed');
+                    showResult('interfaceResults', '⚠️ Mobile interface needs update', 'warning');
+                } else {
+                    throw new Error('Mobile interface not found');
+                }
+            } catch (error) {
+                log('Mobile interface: ERROR - ' + error.message);
+                showResult('interfaceResults', '❌ Mobile interface failed: ' + error.message, 'error');
+            }
+        }
+        
+        function testChromeExtension() {
+            log('Opening Chrome extension instructions...');
+            showResult('interfaceResults', 'ℹ️ Install the Chrome extension from the Touchpad Controls folder', 'info');
+            window.open('https://github.com/Needless64/Joystick/tree/main/Touchpad%20Controls/chrome-extension', '_blank');
+        }
+        
+        // Auto-run basic tests on page load
+        window.addEventListener('load', () => {
+            log('Starting automatic deployment tests...');
+            setTimeout(testMobileAPI, 1000);
+            setTimeout(testDesktopAPI, 2000);
+            setTimeout(testMobileInterface, 3000);
+        });
+    </script>
+</body>
+</html>
