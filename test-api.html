@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Connection Test</h1>
+    <div id="status">Testing...</div>
+    <div id="log"></div>
+
+    <script>
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+
+        function addLog(message) {
+            log.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;
+        }
+
+        // Test API connection
+        addLog('Testing API connection...');
+        
+        fetch('/api/events?role=mobile')
+            .then(response => {
+                addLog('Response status: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                addLog('Response data: ' + JSON.stringify(data));
+                status.textContent = 'API Working!';
+                status.style.color = 'green';
+            })
+            .catch(error => {
+                addLog('Error: ' + error.message);
+                status.textContent = 'API Error!';
+                status.style.color = 'red';
+            });
+
+        // Test sending data
+        setTimeout(() => {
+            addLog('Testing POST request...');
+            fetch('/api/events?role=mobile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: { type: 'test', data: 'hello' }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                addLog('POST response: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                addLog('POST error: ' + error.message);
+            });
+        }, 2000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Simple Mobile Touchpad</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #1a1a1a;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+        
+        .status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: #f00;
+            font-size: 14px;
+            z-index: 9999;
+            background: rgba(0,0,0,0.8);
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        .controls {
+            flex: 1;
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .joystick-area {
+            width: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .joystick {
+            width: 120px;
+            height: 120px;
+            border: 3px solid #555;
+            border-radius: 50%;
+            position: relative;
+            background: #333;
+        }
+        
+        .knob {
+            width: 40px;
+            height: 40px;
+            background: #777;
+            border-radius: 50%;
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            border: 2px solid #999;
+            cursor: pointer;
+        }
+        
+        .knob.active {
+            background: #aaa;
+        }
+        
+        .touchpad {
+            flex: 1;
+            background: #2a2a2a;
+            border: 3px solid #555;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #666;
+            position: relative;
+        }
+        
+        .touchpad.active {
+            background: #333;
+            border-color: #777;
+        }
+        
+        .buttons {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
+        
+        .btn {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .btn:active {
+            background: #777;
+        }
+        
+        .log {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            max-width: 300px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="status" id="status">●</div>
+    
+    <div class="controls">
+        <div class="joystick-area">
+            <div class="joystick">
+                <div class="knob" id="knob"></div>
+            </div>
+            <div style="margin-top: 10px; font-size: 12px;">Scroll</div>
+        </div>
+        
+        <div class="touchpad" id="touchpad">
+            Touchpad
+            <div class="buttons">
+                <button class="btn" id="leftBtn">L</button>
+                <button class="btn" id="rightBtn">R</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="log" id="log"></div>
+
+    <script>
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+        const knob = document.getElementById('knob');
+        const touchpad = document.getElementById('touchpad');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        
+        let connected = false;
+        let joystickActive = false;
+        let touchpadActive = false;
+        
+        function addLog(message) {
+            log.innerHTML = new Date().toLocaleTimeString() + ': ' + message + '<br>' + log.innerHTML;
+            if (log.children.length > 5) {
+                log.removeChild(log.lastChild);
+            }
+        }
+        
+        function updateStatus(color, text) {
+            status.style.color = color;
+            if (text) addLog(text);
+        }
+        
+        // Test connection
+        function testConnection() {
+            addLog('Testing connection...');
+            fetch('/api/events?role=mobile')
+                .then(response => {
+                    addLog('Response: ' + response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    addLog('Connected: ' + JSON.stringify(data));
+                    connected = true;
+                    updateStatus('#0f0', 'Connected!');
+                })
+                .catch(error => {
+                    addLog('Error: ' + error.message);
+                    connected = false;
+                    updateStatus('#f00', 'Connection failed');
+                    setTimeout(testConnection, 3000);
+                });
+        }
+        
+        // Send data
+        function send(type, data) {
+            if (!connected) return;
+            
+            fetch('/api/events?role=mobile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: { type, ...data }
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (!result.success) {
+                    addLog('Send failed');
+                }
+            })
+            .catch(error => {
+                addLog('Send error: ' + error.message);
+                connected = false;
+                updateStatus('#f00', 'Disconnected');
+            });
+        }
+        
+        // Joystick handling
+        let joystickTouch = null;
+        
+        knob.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            joystickTouch = e.touches[0].identifier;
+            joystickActive = true;
+            knob.classList.add('active');
+            addLog('Joystick start');
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (joystickTouch !== null) {
+                for (let touch of e.touches) {
+                    if (touch.identifier === joystickTouch) {
+                        e.preventDefault();
+                        const rect = knob.parentElement.getBoundingClientRect();
+                        let dx = touch.clientX - (rect.left + 60);
+                        let dy = touch.clientY - (rect.top + 60);
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        
+                        if (dist > 40) {
+                            dx = dx/dist * 40;
+                            dy = dy/dist * 40;
+                        }
+                        
+                        knob.style.left = (40 + dx) + 'px';
+                        knob.style.top = (40 + dy) + 'px';
+                        
+                        send('joystick', { 
+                            x: dx/40, 
+                            y: dy/40 
+                        });
+                        break;
+                    }
+                }
+            }
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            for (let touch of e.changedTouches) {
+                if (touch.identifier === joystickTouch) {
+                    e.preventDefault();
+                    joystickTouch = null;
+                    joystickActive = false;
+                    knob.classList.remove('active');
+                    knob.style.left = '40px';
+                    knob.style.top = '40px';
+                    send('joystick', { x: 0, y: 0 });
+                    addLog('Joystick end');
+                    break;
+                }
+            }
+        });
+        
+        // Touchpad handling
+        let lastTouchX = 0, lastTouchY = 0;
+        
+        touchpad.addEventListener('touchstart', (e) => {
+            if (e.target === touchpad) {
+                e.preventDefault();
+                touchpadActive = true;
+                touchpad.classList.add('active');
+                const touch = e.touches[0];
+                lastTouchX = touch.clientX;
+                lastTouchY = touch.clientY;
+                addLog('Touchpad start');
+            }
+        });
+        
+        touchpad.addEventListener('touchmove', (e) => {
+            if (touchpadActive && e.target === touchpad) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const dx = touch.clientX - lastTouchX;
+                const dy = touch.clientY - lastTouchY;
+                
+                if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                    send('mouseMove', { x: dx * 2, y: dy * 2 });
+                    lastTouchX = touch.clientX;
+                    lastTouchY = touch.clientY;
+                }
+            }
+        });
+        
+        touchpad.addEventListener('touchend', (e) => {
+            if (touchpadActive) {
+                e.preventDefault();
+                touchpadActive = false;
+                touchpad.classList.remove('active');
+                addLog('Touchpad end');
+            }
+        });
+        
+        // Button handling
+        leftBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            send('click', { button: 'left', action: 'down' });
+            addLog('Left click');
+        });
+        
+        rightBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            send('click', { button: 'right', action: 'down' });
+            addLog('Right click');
+        });
+        
+        // Start connection test
+        testConnection();
+        
+        // Prevent context menu
+        document.addEventListener('contextmenu', e => e.preventDefault());
+    </script>
+</body>
+</html>
