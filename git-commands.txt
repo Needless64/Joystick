@@ -1,0 +1,40 @@
+# Git Commands to Push Your Project
+
+# 1. Initialize Git repository (if not already done)
+git init
+
+# 2. Add the remote repository
+git remote add origin https://github.com/Needless64/Joystick.git
+
+# 3. Add all files to staging
+git add .
+
+# 4. Commit the files
+git commit -m "🚀 Initial release: Mobile Touchpad Controller v2.0
+
+✨ Features:
+- 📱 Mobile touchpad with joystick and multi-touch support
+- 🔌 Auto-active Chrome extension (works on every tab)
+- 🌐 Real-time WebSocket communication
+- ⚙️ Customizable settings and layouts
+- 🎮 Perfect for browser games, presentations, and remote control
+
+🛠️ Tech Stack:
+- Node.js + Express + WebSocket server
+- Chrome Extension (Manifest V3)
+- Mobile-optimized HTML/CSS/JS interface
+- Cross-platform compatibility
+
+📦 Ready to use:
+- npm install && npm start
+- Load chrome-extension/ in Chrome
+- Connect mobile device and control wirelessly!"
+
+# 5. Push to GitHub
+git push -u origin main
+
+# Alternative if main branch doesn't exist:
+# git push -u origin master
+
+# If you get errors about existing content, force push (CAREFUL!):
+# git push -f origin main

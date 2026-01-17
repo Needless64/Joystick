@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            width: 320px;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f8f9fa;
+            margin: 0;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .subtitle {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status.disconnected {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+        
+        .status.connected {
+            background: #efe;
+            color: #363;
+            border: 1px solid #cfc;
+        }
+        
+        .status.active {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .status.disconnected .status-dot {
+            background: #c33;
+        }
+        
+        .status.connected .status-dot {
+            background: #363;
+        }
+        
+        .status.active .status-dot {
+            background: #1565c0;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            color: #0066cc;
+            margin-top: 12px;
+            line-height: 1.4;
+        }
+        
+        .mobile-section {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .mobile-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .mobile-url {
+            font-size: 11px;
+            color: #666;
+            word-break: break-all;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 6px 0;
+            font-family: monospace;
+        }
+        
+        .qr-placeholder {
+            width: 80px;
+            height: 80px;
+            margin: 8px auto;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .settings {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .setting-group {
+            margin-bottom: 10px;
+        }
+        
+        .setting-label {
+            font-size: 12px;
+            color: #333;
+            margin-bottom: 4px;
+            display: block;
+        }
+        
+        .setting-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .icon {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">📱 Mobile Touchpad</div>
+        <div class="subtitle">Wireless laptop control</div>
+    </div>
+    
+    <div class="status disconnected" id="status">
+        <div class="status-dot"></div>
+        <span id="statusText">Server not running</span>
+    </div>
+    
+    <div class="controls">
+        <button class="btn btn-success" id="enableBtn" style="display: none;">
+            <span class="icon">✅</span>
+            Enable Auto-Activation
+        </button>
+        
+        <button class="btn btn-danger" id="disableBtn">
+            <span class="icon">🚫</span>
+            Disable Extension
+        </button>
+        
+        <button class="btn btn-secondary" id="openMobileBtn">
+            <span class="icon">📱</span>
+            Open Mobile Controller
+        </button>
+    </div>
+    
+    <div class="info">
+        <strong>Auto-Active Mode:</strong><br>
+        Extension automatically activates on every tab!<br>
+        1. Make sure the server is running<br>
+        2. Open mobile controller on your phone<br>
+        3. Control any tab instantly!<br>
+        4. Click "Disable" only if you want to turn it off
+    </div>
+    
+    <div class="mobile-section">
+        <div class="mobile-title">📱 Mobile Controller URL:</div>
+        <div class="mobile-url" id="mobileUrl">
+            Starting server...
+        </div>
+        <div class="qr-placeholder">
+            QR Code<br>Coming Soon
+        </div>
+    </div>
+    
+    <div class="settings">
+        <div class="mobile-title">⚙️ Settings:</div>
+        <div class="setting-group">
+            <label class="setting-label">Server Port:</label>
+            <input type="number" class="setting-input" id="serverPort" value="3000" min="1000" max="9999">
+        </div>
+        <div class="setting-group">
+            <label class="setting-label">Server Host:</label>
+            <input type="text" class="setting-input" id="serverHost" value="localhost" placeholder="localhost or IP">
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "name": "mobile-touchpad-controller",
+  "version": "2.0.0",
+  "description": "Transform your smartphone into a wireless touchpad and mouse for your laptop",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "mobile",
+    "touchpad",
+    "wireless",
+    "mouse",
+    "controller",
+    "websocket",
+    "chrome-extension",
+    "remote-control",
+    "joystick",
+    "browser-control"
+  ],
+  "author": "Mobile Touchpad Controller Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Needless64/Joystick.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Needless64/Joystick/issues"
+  },
+  "homepage": "https://github.com/Needless64/Joystick#readme"
+}
