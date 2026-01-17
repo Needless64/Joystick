@@ -1,21 +1,5 @@
-// Simple polling-based communication for Vercel
-// Since serverless functions don't maintain state, we'll use a simple polling approach
-
-let messages = [];
-let lastCleanup = Date.now();
-
-// Simple cleanup every 5 minutes
-function cleanup() {
-  const now = Date.now();
-  if (now - lastCleanup > 300000) { // 5 minutes
-    messages = messages.filter(msg => now - msg.timestamp < 60000); // Keep messages for 1 minute
-    lastCleanup = now;
-  }
-}
-
+// Simple message passing API for Vercel
 export default function handler(req, res) {
-  cleanup();
-  
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -26,46 +10,32 @@ export default function handler(req, res) {
     return;
   }
 
-  const { role } = req.query;
+  try {
+    const { role } = req.query;
 
-  if (req.method === 'GET') {
-    if (role === 'desktop') {
-      // Desktop polling for messages
-      const recentMessages = messages.filter(msg => 
-        Date.now() - msg.timestamp < 5000 && // Last 5 seconds
-        msg.target === 'desktop'
-      );
-      
+    if (req.method === 'GET') {
+      // Simple response for connection test
       res.status(200).json({ 
-        messages: recentMessages,
+        status: 'connected',
+        role: role || 'unknown',
+        timestamp: Date.now(),
+        message: 'API is working!'
+      });
+    } else if (req.method === 'POST') {
+      // Handle POST requests
+      res.status(200).json({ 
+        success: true,
+        received: req.body,
         timestamp: Date.now()
       });
     } else {
-      // Mobile just gets connection status
-      res.status(200).json({ 
-        status: 'connected',
-        timestamp: Date.now()
-      });
+      res.status(405).json({ error: 'Method not allowed' });
     }
-  } else if (req.method === 'POST') {
-    // Handle messages from mobile clients
-    const body = req.body;
-    
-    if (role === 'mobile' && body.message) {
-      // Store message for desktop clients
-      messages.push({
-        ...body.message,
-        target: 'desktop',
-        timestamp: Date.now(),
-        id: Math.random().toString(36)
-      });
-      
-      // Keep only recent messages
-      messages = messages.filter(msg => Date.now() - msg.timestamp < 60000);
-    }
-
-    res.status(200).json({ success: true });
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
   }
 }

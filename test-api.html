@@ -2,59 +2,76 @@
 <html>
 <head>
     <title>API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { font-size: 24px; margin: 20px 0; }
+        .log { background: #f0f0f0; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
 </head>
 <body>
     <h1>API Connection Test</h1>
-    <div id="status">Testing...</div>
-    <div id="log"></div>
+    <div class="status" id="status">Testing...</div>
+    <div class="log" id="log"></div>
 
     <script>
         const status = document.getElementById('status');
         const log = document.getElementById('log');
 
-        function addLog(message) {
-            log.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;
+        function addLog(message, isError = false) {
+            const div = document.createElement('div');
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            div.className = isError ? 'error' : 'success';
+            log.appendChild(div);
         }
 
-        // Test API connection
-        addLog('Testing API connection...');
+        // Test simple API endpoint first
+        addLog('Testing simple API endpoint...');
         
-        fetch('/api/events?role=mobile')
+        fetch('/api/test')
             .then(response => {
-                addLog('Response status: ' + response.status);
+                addLog('Test API Response status: ' + response.status);
                 return response.json();
             })
             .then(data => {
-                addLog('Response data: ' + JSON.stringify(data));
-                status.textContent = 'API Working!';
-                status.style.color = 'green';
+                addLog('Test API Response: ' + JSON.stringify(data));
+                
+                // Now test the events API
+                addLog('Testing events API...');
+                return fetch('/api/events?role=mobile');
             })
-            .catch(error => {
-                addLog('Error: ' + error.message);
-                status.textContent = 'API Error!';
-                status.style.color = 'red';
-            });
-
-        // Test sending data
-        setTimeout(() => {
-            addLog('Testing POST request...');
-            fetch('/api/events?role=mobile', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: { type: 'test', data: 'hello' }
-                })
+            .then(response => {
+                addLog('Events API Response status: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                addLog('Events API Response: ' + JSON.stringify(data));
+                status.textContent = 'All APIs Working!';
+                status.className = 'status success';
+                
+                // Test POST request
+                addLog('Testing POST request...');
+                return fetch('/api/events?role=mobile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: { type: 'test', data: 'hello world' }
+                    })
+                });
             })
             .then(response => response.json())
             .then(data => {
-                addLog('POST response: ' + JSON.stringify(data));
+                addLog('POST Response: ' + JSON.stringify(data));
+                status.textContent = 'All Tests Passed!';
             })
             .catch(error => {
-                addLog('POST error: ' + error.message);
+                addLog('Error: ' + error.message, true);
+                status.textContent = 'API Error!';
+                status.className = 'status error';
             });
-        }, 2000);
     </script>
 </body>
 </html>
