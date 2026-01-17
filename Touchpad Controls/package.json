@@ -1,0 +1,35 @@
+{
+  "name": "mobile-touchpad-controller",
+  "version": "1.0.0",
+  "description": "Turn your phone into a wireless touchpad for your laptop",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "touchpad",
+    "mobile",
+    "wireless",
+    "controller",
+    "websocket",
+    "remote-control"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/mobile-touchpad-controller"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/mobile-touchpad-controller/issues"
+  },
+  "homepage": "https://github.com/yourusername/mobile-touchpad-controller#readme"
+}
