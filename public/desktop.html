@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desktop Receiver</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #f0f0f0;
+            height: 200vh;
+            overflow-x: hidden;
+        }
+        
+        .dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #333;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: none;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #666;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <strong>Mobile Scroll Controller</strong><br>
+        Up/Down: Scroll pages<br>
+        Left/Right: Horizontal scroll<br>
+        Perfect for YouTube, social media<br>
+        <div id="debug">Waiting for connection...</div>
+    </div>
+    <div class="dot" id="dot"></div>
+
+    <script>
+        const dot = document.getElementById('dot');
+        const debug = document.getElementById('debug');
+        
+        let currentX = 0;
+        let currentY = 0;
+        let targetX = 0;
+        let targetY = 0;
+        
+        let ws;
+        
+        function connectWebSocket() {
+            debug.textContent = 'Connecting...';
+            ws = new WebSocket(`ws://${location.host}/?role=desktop`);
+            
+            ws.onopen = () => {
+                console.log('Connected to server');
+                debug.textContent = 'Connected ✓ - Waiting for mobile input';
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                debug.textContent = `Receiving: x=${data.x.toFixed(2)}, y=${data.y.toFixed(2)}`;
+                handleJoystickInput(data.x, data.y);
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected, reconnecting...');
+                debug.textContent = 'Disconnected - Reconnecting...';
+                setTimeout(connectWebSocket, 1000);
+            };
+        }
+        
+        connectWebSocket();
+        
+        function handleJoystickInput(x, y) {
+            const moveMultiplier = 200;
+            const scrollMultiplier = 20;
+            
+            targetX = x * moveMultiplier;
+            targetY = y * moveMultiplier;
+            
+            // Direct scrolling on this page
+            if (Math.abs(y) > 0.1) {
+                window.scrollBy({
+                    top: y * scrollMultiplier,
+                    behavior: 'auto'
+                });
+            }
+            
+            // Try to send global keyboard events
+            if (Math.abs(y) > 0.3) {
+                // Create and dispatch keyboard events that bubble up
+                const keyCode = y > 0 ? 'ArrowDown' : 'ArrowUp';
+                
+                // Dispatch to document
+                const event = new KeyboardEvent('keydown', {
+                    key: keyCode,
+                    code: keyCode,
+                    keyCode: keyCode === 'ArrowDown' ? 40 : 38,
+                    which: keyCode === 'ArrowDown' ? 40 : 38,
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                
+                document.dispatchEvent(event);
+                
+                // Also try on window
+                window.dispatchEvent(event);
+                
+                // Try to focus and send to other elements
+                if (document.activeElement && document.activeElement !== document.body) {
+                    document.activeElement.dispatchEvent(event);
+                }
+            }
+            
+            // For horizontal scrolling
+            if (Math.abs(x) > 0.3) {
+                const keyCode = x > 0 ? 'ArrowRight' : 'ArrowLeft';
+                
+                const event = new KeyboardEvent('keydown', {
+                    key: keyCode,
+                    code: keyCode,
+                    keyCode: keyCode === 'ArrowRight' ? 39 : 37,
+                    which: keyCode === 'ArrowRight' ? 39 : 37,
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                
+                document.dispatchEvent(event);
+                window.dispatchEvent(event);
+            }
+        }
+        
+        function animate() {
+            const lerp = 0.1;
+            currentX += (targetX - currentX) * lerp;
+            currentY += (targetY - currentY) * lerp;
+            
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            let newX = centerX + currentX;
+            let newY = centerY + currentY;
+            
+            newX = Math.max(10, Math.min(window.innerWidth - 10, newX));
+            newY = Math.max(10, Math.min(window.innerHeight - 10, newY));
+            
+            dot.style.left = newX + 'px';
+            dot.style.top = newY + 'px';
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
